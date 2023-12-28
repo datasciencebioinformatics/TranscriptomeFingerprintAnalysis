@@ -1,0 +1,298 @@
+# Script to handle microarray files from Illumina (BeadStudio outuput), Affymetrix (.CEL) and Agilent (.TXT)
+IlluminaRNASeq<-function(folder.,rawData.,detect.,annotation.,info.)
+{
+	versionFun<-"v2.0" # Version must be changed if modifications are done.
+	### The folder must contains 3 files: rawData.txt with expression values, control.txt with control probes and info.txt gathering information on the samples (see Procedure for more details)
+	### If names of files are not set properly, please change them or change rawData, controlProbes and info parameters to fit them.
+	### Illumina sample probe profile: text file, previously named "rawData.txt", must contains, in this order, the following columns : 
+	# PROBE_ID
+	# TargetID
+	# ProbeID
+	# PROBE_SEQUENCE
+	# Then, for each samples:
+	# AVG_Signal
+	# Avg_NBEADS
+	# BEAD_STDERR
+	# Detection pval
+	### In order to perform background correction, export control probe profile as .TXT file named "control.txt" in the same folder as rawData.txt
+	setwd(folder.)	
+	write(paste(Sys.time()," - Launch IlluminaRNASeq() ",versionFun,sep=""), file="Log.txt",append=TRUE)
+	write.table(rawData.,file="./rawAnalysis_1/rawData.txt",sep="\t",quote=FALSE,row.names=TRUE, col.names=TRUE)
+	write.table(detect.,file="./rawAnalysis_1/detection.txt",sep="\t",quote=FALSE)
+	write.table(annotation.,file="./rawAnalysis_1/annotation.txt",sep="\t",row.names=FALSE,quote=FALSE)
+	return(rawData.)
+}
+
+
+AgilentF<-function(folder,info.=info,expName.) # Only working for one color microarray
+{
+	versionFun<-"v1.0" # Version must be changed if modifications are done.
+	## folder contains folders with microarray images and only these folders
+	setwd(folder)
+	write(paste(Sys.time()," - Launch AgilentF() ",versionFun,sep=""), file="Log.txt",append=TRUE)
+	library(limma) # upload library for Illumina beadchip processing
+	a<-dir()
+	target<-c()
+	targets<-c()
+	for (i in 1:length(a))
+	{
+		target<-list.files(a[i],pattern=".txt")
+		sampleID<-c(sampleID,target)
+		target<-paste(a[i],"/",target,sep="")
+		targets<-c(targets,target)
+	}
+	y<-read.maimages(targets, source="agilent", green.only=TRUE, other.columns=c("gIsPosAndSignif","gIsWellAboveBG"))
+	y<-backgroundCorrect(y, method="normexp", normexp.method="mle", offset=16) # remove background
+	Cont<-abs(y$genes[,"ControlType"])
+	Detect<-yy$other$gIsPosAndSignif
+	Detect.above<-yy$other$gIsWellAboveBG
+	Probes<-yy$genes$ProbeName
+	Exp<-yy$E # Expression values
+	Exp.cont<-Exp[which(Cont==0),] # Remove control probes from expression values
+	Detect<-Detect[which(Cont==0),] # Remove control probes from detection values 1
+	Detect.above<-Detect.above[which(Cont==0),] # Remove control probes from detection values 2
+	Probes<-Probes[which(Cont==0)] # Remove control probes from probe's names
+	Detect.all<-apply(Detect,1,sum)
+	Exp.det<-Exp.cont[which(Detect.all>0),]
+	Detect.above<-Detect.above[which(Detect.all>0),]
+	Probes<-Probes[which(Detect.all>0)]
+	X<-Exp.det
+	infoAgi<-info # read information file
+	rownames(infoAgi)<-infoAgi[,"ID"]
+	infoAgi<-infoAgi[,-c(which(colnames(infoAgi)=="ID"))]
+	infoAgi<-infoAgi[sampleID,]
+	colnames(X)<-infoAgi[,"Sample_Name"]
+	rownames(X)<-Probes
+	colnames(Detect.above)<-infoAgi[,"Sample_Name"]
+	rownames(Detect.above)<-Probes
+	Z<-list(X,Detect.above)
+	save(Z, file=paste("./rawData_machineLevel_",expName.,".objR",sep=""))
+	return(Z)
+}
+
+AffymetrixF<-function(folder.,info.=info,expName.)
+{
+	versionFun<-"v1.0" # Version must be changed if modifications are done.
+	### folder contains collection of .CEL files and info.txt gathering information on the samples (see Procedure for more details)
+	### folder_out is the folder where .TXT files will be stored, usually in /MA_Data/yourID/expName/
+	library(oligo) # upload library for Illumina beadchip processing
+	setwd(folder.)
+	setwd(paste("../@raw/",info.[,"ExpName"][1],sep=""))
+	write(paste(Sys.time()," - Launch Affymetrix() ",versionFun,sep=""), file="../Log.txt",append=TRUE)
+	a<-list.files(pattern=".CEL")
+	dataAffy <- read.celfiles(filenames=as.character(a)) # read raw data
+	dataAffy<-bg.correct(dataAffy, method="rma")
+	setwd(folder_out)
+	save(dataAffy, files==paste("rawData_machineLevel_",expName.,".objR",sep=""))
+	X<-probes(dataAffy) # expression values
+	infoAffy<-info # read information file
+	rownames(infoAffy)<-infoAffy[,"ID"]
+	infoAffy<-infoAffy[,-c(which(colnames(infoAffy)=="ID"))]
+	sampleOrder<-colnames(X)
+	infoAffy<-infoAffy[sampleOrder,]
+	# expression values
+	colnames(X)<-infoAffy[,"Sample_Name"]
+	return(X)
+}
+
+preProcess<-function(folder,info,techParam.=techParam, tablenormalizedReadsCount, detection,annotation, columns. )
+{
+	versionFun<-"v2.0" # Version must be changed if modifications are done.
+	expName<-unique(info$ExpName)
+	provider<-unique(info$Provider)
+	setwd(folder)
+	a<-list.files(pattern="rawAnalysis_")
+	if(length(a)>0)
+	{
+		write(paste(Sys.time()," - Launch preProcess() ",versionFun,sep=""), file="Log.txt",append=TRUE)
+		write(paste("Previous analysis found: ", a[length(a)],sep=""), file="Log.txt",append=TRUE)
+		print(paste("Previous analysis found: ", a[length(a)],sep=""))
+		x<-tablenormalizedReadsCount
+		detect<-detection
+		annot<-annotation
+		Z<-read.table(paste(input,"/rawAnalysis_",(length(a)),"/toRemove.txt",sep=""), sep="\n")
+		write(paste("Create folder rawAnalysis_",(length(a)+1),sep=""), file="Log.txt",append=TRUE)
+		dir.create(paste("./rawAnalysis_",(length(a)+1),"/", sep=""))
+		try(x<-x[,-c(which(colnames(x) %in% t(Z)))])
+		try(detect<-detect[,-c(which(colnames(detect) %in% t(Z)))])
+		write(paste("Remove samples: ",t(Z),sep=""), file="Log.txt",append=TRUE)
+		setwd(paste(input,"./rawAnalysis_",(length(a)+1),"/",sep=""))
+		write.table(x,file="./rawData.txt",sep="\t",quote=FALSE,row.names=TRUE, col.names=NA)
+		write.table(detect,file="./detection.txt",sep="\t",quote=FALSE)
+		write.table(annot,file="./annotation.txt",sep="\t",row.names=FALSE,quote=FALSE)
+	}else{
+		write(paste(Sys.time()," - Launch preProcess() ",versionFun,sep=""), file="Log.txt",append=TRUE)
+		write("Creating new analysis", file="Log.txt",append=TRUE)
+		print("Creating new analysis")
+		write("Create folder rawAnalysis_1", file="Log.txt",append=TRUE)
+		dir.create("./rawAnalysis_1")
+		library(ade4)
+		library(factoextra)
+		library(limma)
+		library(lumi)
+		# call for function depending on provider	
+		func<-paste(provider,"F",sep="")
+		x<-IlluminaRNASeq(folder.=folder,rawData.=tablenormalizedReadsCount,detect.=detection,annotation.=annotation, info.=info)
+		setwd("./rawAnalysis_1")
+	}	
+	# Rapport
+	library(ade4) 
+	library(limma)
+	library(factoextra)
+	d<-dim(x)
+	# Boxplot
+	jpeg(file="Boxplot.jpg",width=1500, height=1500,quality=100)
+	boxplot(log(x,2), cex=2, las=3)
+	dev.off()
+	moyennes=apply(x,2,mean)
+	write.table("Mean expression:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE, col.names=FALSE, row.names=FALSE)
+	write.table(moyennes, file="Report.txt", sep="\t", quote=FALSE, append=TRUE, col.names=TRUE)
+	# Standard deviation
+	x.centre=as.matrix(x-matrix(ncol=d[2],rep(moyennes,d[1]),byrow=T))
+	ecarttype=sqrt(apply(x.centre^2,2,sum)/d[1])	# Remarque : ne pas utiliser la fonction sd qui calcule l'écart type corrigé
+	write.table("Expression standard deviation:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=FALSE, row.names=FALSE)
+	write.table(ecarttype, file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=TRUE)
+	# Covariance, correlation
+	Cov.x=t(x.centre)%*%x.centre/d[1]		# Remarque : ne pas utiliser les fonctions cov ou var qui calculent les valeurs corrigées
+	write.table("Variance/covariance matrix:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=TRUE, row.names=FALSE)
+	write.table(Cov.x, file="Report.txt", sep="\t", quote=FALSE, append=TRUE, col.names=NA)
+	Cor.x=cor(x)
+	write.table("Correlation matrix:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=TRUE, row.names=FALSE)
+	write.table(Cor.x, file="Report.txt", sep="\t", quote=FALSE, append=TRUE, col.names=NA)
+	# Choix de la dimension
+	#z<-dudi.pca(t(x),scale=F,scannf = FALSE, nf=2)	
+	m_x<-as.matrix(x)	
+	m_x<-data.frame(rowVars(m_x))
+	rownames(m_x)<-rownames(x)
+	colnames(m_x)<-"var"				
+	z<-dudi.pca(t(x[head( rownames(m_x)[order(m_x, decreasing=TRUE)], n=500),]),scale=F,scannf = FALSE, nf=2)	
+	
+	
+	
+	
+	batch<-info[which(info$ID %in% colnames(x)),]
+	Sgrp<-batch[,"Sample_Group"]
+	write.table("Eigenvalues:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=TRUE, row.names=FALSE)
+	eig.val <- get_eigenvalue(z)
+	write.table(eig.val, file="Report.txt", sep="\t", quote=FALSE, append=TRUE)
+	
+
+	# First heatmap - group_phenotype
+	colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)	
+	
+	
+	jpeg(file="PCA.jpg",width=1200, heigh=1200,quality=100)
+		s.class(z$li, fac=as.factor(Sgrp), cpoint = 3, col=rainbow(length(levels(Sgrp))), cellipse=1,cstar=1,clabel=2)
+	dev.off()
+	
+	Sgrp2<-batch[,columns.[2]]
+	write.table("Eigenvalues:", file="Report.txt", sep="\t", quote=FALSE, append=TRUE,col.names=FALSE, row.names=FALSE)
+	eig.val <- get_eigenvalue(z)
+	write.table(eig.val, file="Report.txt", sep="\t", quote=FALSE, append=TRUE)
+	jpeg(file="PCA2.jpg",width=1200, heigh=1200,quality=100)
+		s.class(z$li, fac=as.factor(Sgrp2), cpoint = 3, col=rainbow(length(levels(Sgrp2))), cellipse=1,cstar=1,clabel=2)
+	dev.off()	
+	
+	# PCA 2 ####################################################################################################
+	data_group_phenotype <- z$li
+	data_group_phenotype<-cbind(data_group_phenotype,batch[,c(columns.[1],columns.[3]) ])
+	p<-ggplot(data_group_phenotype, aes_string("Axis1", "Axis2", color=columns.[3], shape=columns.[1])) + geom_point(size=3) + coord_fixed() + labs(x=NULL, y=NULL)	
+	ggsave(file="PCA3.jpeg",plot=p , width = 8, height = 8, units = 'in', dpi = 200)	
+	
+
+	# Heatmap
+	x.Dist<-dist(t(x), method = "euclidean", diag = FALSE, upper = FALSE, p = 2)
+	x.Clust<-hclust(x.Dist, method="ward.D")
+	jpeg(file="SampleRelation.jpg",width=1500, height=1500,quality=100)
+	par(mar=c(20,5,5,0)) 
+	plot(as.dendrogram(x.Clust), cex=3, main="SampleRelation: Euclidean/Ward")
+	dev.off()
+	
+	# Create data frame with data - Sample_Group
+	df_group_phenotype<- as.data.frame(batch[,c(columns.[1],columns.[2],columns.[3])])
+				
+	# Set the row names
+	rownames(df_group_phenotype)<-rownames(batch)
+
+	# Set the col names
+	colnames(df_group_phenotype)<-c(columns.[1],columns.[2],columns.[3])
+	
+	# First heatmap - group_phenotype
+	colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)		
+	
+
+	
+	# Heatmap 2 ####################################################################################################
+	# Create data frame with data
+	dist_x<-dist(t(x))
+	matrix_x<-as.matrix(dist_x)
+	
+	# Set row names
+	rownames(matrix_x) <- rownames(batch)
+		
+		# Save plot
+	jpeg(file="SampleRelation2.jpeg", width = 8, height = 11, units = 'in', res = 600)
+		pheatmap(matrix_x,clustering_distance_rows=dist_x,clustering_distance_cols=dist_x,col=colors,annotation_col=df_group_phenotype, show_rownames=FALSE)
+	dev.off()
+	# End Heatmap 2 ################################################################################################
+	m_x<-as.matrix(x)	
+	m_x<-data.frame(rowVars(m_x))
+	rownames(m_x)<-rownames(x)
+	colnames(m_x)<-"var"				
+	dist_x<-dist(t(x[head( rownames(m_x)[order(m_x, decreasing=TRUE)], n=500),]))
+	
+	# Set row names
+	rownames(matrix_x) <- rownames(batch)
+	
+	# Save plot
+	jpeg(file="SampleRelation3.jpeg", width = 8, height = 11, units = 'in', res = 600)
+		pheatmap(matrix_x,clustering_distance_rows=dist_x,clustering_distance_cols=dist_x,col=colors,annotation_col=df_group_phenotype, show_rownames=FALSE)
+	dev.off()	
+
+
+	
+	if(!is.null(techParam.))
+	{
+		# PVCA # Continuous Values have to be transformed to factors. 
+		source("//contrebasse/Raw Data/transcriptome/Tools/rna-seq/R/Functions/pvca.R")
+		y<-x[,as.vector(batch$ID)]
+		# Search columns to be transformed and transform!
+		toTransf<-c()
+		for(column in techParam.)
+		{
+			TF<-dim(batch)[1]==length(levels(as.factor(batch[,column])))
+			if(TF)
+			{
+				toTransf<-c(toTransf,column)
+			}
+		}
+		for (i in toTransf)
+		{
+			if(is.numeric(batch[,toTransf]))
+			{	
+				batch[,toTransf] <- cut(batch[,toTransf], breaks=quantile(batch[,toTransf], probs=seq(0,1, by=0.25)), include.lowest=TRUE)
+			} else {
+				print("I tried to cluster non numeric values... and it's not possible.")
+				print(paste("At least one of your parameters (",paste(toTransf,collapse=","),") is text format and cannot be used to group samples (e.g. date of birth).",sep=""))
+				print("Please have a look at such parameter and create your own groups (e.g. born in 1972 or 1973) or remove the parameter(s).")
+			}
+		}
+		jpeg(file="PVCA.jpg",width=1600, height=800,quality=100)
+		pvca(techParam., y, batch)
+		dev.off()
+	}else {
+		write("No technical parameter set, no PVCA done.", file="../Log.txt",append=TRUE)
+	}
+	# MA plot
+	dir.create("MAplot")
+	setwd("./MAplot")
+	for (i in 1:dim(x)[2])
+	{
+		jpeg(file=paste("Sample_",i,".jpg"),width=800, height=800,quality=100)
+		limma::plotMA(x,array=i)
+		dev.off()
+	}
+	write.table("",file="../toRemove.txt",col.names=FALSE,row.names=FALSE,quote=FALSE)
+	write(paste(Sys.time()," - End preProcess() ",versionFun,sep=""), file="../../Log.txt",append=TRUE)
+	setwd(folder)
+}
