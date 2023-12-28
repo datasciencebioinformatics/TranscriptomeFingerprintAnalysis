@@ -5,8 +5,9 @@ A transcriptome fingerprint analysis.
 Fig 1. Schematic of the workflow for transcriptome analysis of T1D patients. Whole blood from T1D patients (n=39) and healthy donors (n=43) were collected on two hospitals following standardized protocol. Differential expression (DE) analysis performed with classical methods (i.e. DESeq2, wilcox, roc, t) was applied to this dataset to derive putative T1D gene signatures. Further, a previously developed method based on independent component analysis (ICA) was employed to generate enriched signatures. For gene signatures assessment, the initial sample set was bootstrapped 100 times by selecting 50% of samples. 
 ![](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZ3R1rw2OwiLzjVlqCIPf9GT4Nt_ud4ewOzcesCcWYLwJ6L5wBeaQ0CqY8Wt4V8Q_bANHpwg9X6BpmYVsX-ciVX_WQPKGQ1avLf6Mtw_TcopcjXlnZn8yX2vk26BC_dY5rX64LG4VpytwGT1N1NALOBnZGdjTVlG1ruDQMMLpUl3OY3P3wRGMLcgtgwnA/s712/Figures.png)
 
-# Test data
-Two hypotlamus samples from mouse [1] were used as test data, each contaning both RNA and ATAC.
+# Differential analysis
+Fig 2. Description of a putative gene signature for T1D. Different expression (DE) analysis were performed by 4 methods (i.e. roc, t, wilcox, DESeq2), and the union of the resultant gene sets was computed. (A) Overlap of the DE gene sets and the p-value threshold used in each corresponding method are shown. (B) Pathway enrichment analysis of the union of DE genes in which the k=4 gene clusters were evaluated independently (see Materials and Methods for further information). (C) Heatmap presentation of the union of DE genes for all samples in which the k=4 gene clusters are delineated by colors.
+![](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgTL0CXPGaceClDQ_XzeWSKWc1JKEki7VXs65XGV5xkTSYovOwdLvHA-JydrTexvk-9WerUaP5dVN2H5-_rtbJdnnbJQsdtukDRFjzx5ApLSdhosiWc5pBXv_hTS6BgvMVQaEOv548-hLp87hSeV7ExUe6U4HBBMGQc3hRL_iFIRaRQhB4dmV3gncvYgXY/s906/Figures2.png)
 
 # Goals
 The main goal is to identify hypothalamus celltypes and investigate sub-population. The bioinformatics goal is to adapt Seurat [2] piepeline to be used in samples of hypothalamus.
