@@ -81,3 +81,6 @@ Over_Representation_astrocytes<-Results_astrocytes[Results_astrocytes$raw_p_over
 Over_Representation_neurons   <-Results_microglia[Results_microglia$raw_p_overrep<=0.001,]
 Over_Representation_oPCs      <-Results_oPCs[Results_oPCs$raw_p_overrep<=0.001,]
 #####################################################################################
+# Now I need to get all genes associated to a go term.
+gene.data <- getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
+                   filters = 'go_id', values = 'GO:0061061', mart = ensembl)
