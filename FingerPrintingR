@@ -52,6 +52,7 @@ Oligodendrocytes.markers <- Oligodendrocytes.markers[order(Oligodendrocytes.mark
 Astrocytes.markers <- Astrocytes.markers[order(Astrocytes.markers$avg_log2FC),][1:10,]
 OPCs.markers <- OPCs.markers[order(OPCs.markers$avg_log2FC),][1:10,]
 Microglia.markers <- Microglia.markers[order(Microglia.markers$avg_log2FC),][1:10,]
-
-
+#####################################################################################
+library(GOfuncR)
+library(dplyr)
  
