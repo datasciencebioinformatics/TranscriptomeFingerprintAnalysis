@@ -19,6 +19,7 @@ library(ggplot2)
 library(loupeR)
 library(ggbeeswarm)
 library("topGO")
+library("GOfuncR")
 colour=c('Astrocytes' ='#fde725','OPCs' ='#5ec962','Microglia' ='#21918c','Neurons'='#3b528b','Oligodendrocytes'='#440154')
 #####################################################################################
 # First, create ATAC and RNA objects for all samples 
