@@ -61,18 +61,23 @@ library(GOfuncR)
 ## create input dataframe with candidate genes
 gene_ids = neurons.markers$gene
 input_hyper_neurons   = data.frame(neurons.markers$gene, is_candidate=1)
-input_hyper_microglia = data.frame(microglia.markers$gene, is_candidate=1)
+input_hyper_oligodendrocytes = data.frame(oligodendrocytes.markers$gene, is_candidate=1)
 input_hyper_astrocytes= data.frame(astrocytes.markers$gene, is_candidate=1)
 input_hyper_microglia = data.frame(microglia.markers$gene, is_candidate=1)
 input_hyper_oPCs      = data.frame(oPCs.markers$gene, is_candidate=1)
 #####################################################################################
 ## run enrichment analysis (n_randets=100 lowers compuation time
 ## compared to default 1000)
-Results_neurons = go_enrich(input_hyper_neurons, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_microglia = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_astrocytes = go_enrich(input_hyper_astrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_microglia = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_oPCs = go_enrich(input_hyper_oPCs, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_neurons          = go_enrich(input_hyper_neurons, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_oligodendrocytes = go_enrich(input_hyper_oligodendrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_astrocytes       = go_enrich(input_hyper_astrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_microglia        = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_oPCs             = go_enrich(input_hyper_oPCs, n_randset=1000, organismDb = 'Mus.musculus')$results
 
 ## Calculate over and under represented
-Over_Representation_neurons<-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
+Over_Representation_neurons   <-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
+Over_Representation_microglia <-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
+Over_Representation_astrocytes<-Results_astrocytes[Results_astrocytes$raw_p_overrep<=0.001,]
+Over_Representation_neurons   <-Results_microglia[Results_microglia$raw_p_overrep<=0.001,]
+Over_Representation_oPCs      <-Results_oPCs[Results_oPCs$raw_p_overrep<=0.001,]
+#####################################################################################
