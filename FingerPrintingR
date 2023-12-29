@@ -57,10 +57,22 @@ library(dplyr)
 
 ## load GOfuncR package
 library(GOfuncR)
+#####################################################################################
 ## create input dataframe with candidate genes
 gene_ids = neurons.markers$gene
-input_hyper = data.frame(gene_ids, is_candidate=1)
+input_hyper_neurons   = data.frame(neurons.markers$gene, is_candidate=1)
+input_hyper_microglia = data.frame(microglia.markers$gene, is_candidate=1)
+input_hyper_astrocytes= data.frame(astrocytes.markers$gene, is_candidate=1)
+input_hyper_microglia = data.frame(microglia.markers$gene, is_candidate=1)
+input_hyper_oPCs      = data.frame(oPCs.markers$gene, is_candidate=1)
 #####################################################################################
 ## run enrichment analysis (n_randets=100 lowers compuation time
 ## compared to default 1000)
-res_hyper = go_enrich(input_hyper, n_randset=100, organismDb = 'Mus.musculus',test='wilcoxon')
+Results_neurons = go_enrich(input_hyper_neurons, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_microglia = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_astrocytes = go_enrich(input_hyper_astrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_microglia = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
+Results_oPCs = go_enrich(input_hyper_oPCs, n_randset=1000, organismDb = 'Mus.musculus')$results
+
+## Calculate over and under represented
+Over_Representation_neurons<-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
