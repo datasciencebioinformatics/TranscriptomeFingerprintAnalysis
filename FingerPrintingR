@@ -56,4 +56,4 @@ Microglia.markers <- Microglia.markers[order(Microglia.markers$avg_log2FC),][1:1
 #####################################################################################
 library(GOfuncR)
 library(dplyr)
- 
+Go_Enrich_Out<- go_enrich(data.frame(gene=Neurons.markers$gene,hypergeometric=1)) 
