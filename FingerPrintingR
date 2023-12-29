@@ -1,0 +1,57 @@
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(gridExtra)
+library(ggplot2)
+library(plyr)
+library(SeuratObject)
+library(Seurat)
+library("harmony")
+library(rhdf5)
+library("hdf5r")
+library("Signac")
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+library(Signac)
+library(EnsDb.Mmusculus.v79)
+library(dplyr)
+library(ggplot2)
+library(loupeR)
+library(ggbeeswarm)
+library("topGO")
+colour=c('Astrocytes' ='#fde725','OPCs' ='#5ec962','Microglia' ='#21918c','Neurons'='#3b528b','Oligodendrocytes'='#440154')
+#####################################################################################
+# First, create ATAC and RNA objects for all samples 
+# follow https://github.com/datasciencebioinformatics/preprocessing_scRNA_scATAC/blob/main/SeuratFullMultiomeObject
+# it will creante two main objects ATAC_objects_combined e RNA_objects_combined
+#####################################################################################
+# ATAC analysis add gene annotation information
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Mmusculus.v79)
+seqlevelsStyle(annotations) <- "UCSC"
+genome(annotations) <- "mm10"
+#####################################################################################
+output_dir="/home/felipe/results_seurat/"                                           #
+#output_dir="/home/singlecell/results_seurat/"                                      #
+#####################################################################################
+load("./reference.RData")                                                #
+#####################################################################################
+# Find all markers
+reference_join   <- JoinLayers(reference, assay = "RNA")
+all.markers <- FindAllMarkers(object = reference_join)
+#####################################################################################
+# Select markers by cell types
+Neurons.markers <- all.markers[all.markers$cluster=="Neurons",]
+Oligodendrocytes.markers <- all.markers[all.markers$cluster=="Oligodendrocytes",]
+Astrocytes.markers <- all.markers[all.markers$cluster=="Oligodendrocytes",]
+OPCs.markers <- all.markers[all.markers$cluster=="OPCs",]
+Microglia.markers <- all.markers[all.markers$cluster=="Microglia",]
+
+# Sort cell types
+Neurons.markers <- Neurons.markers[order(Neurons.markers$avg_log2FC),][1:10,]
+Oligodendrocytes.markers <- Oligodendrocytes.markers[order(Oligodendrocytes.markers$avg_log2FC),][1:10,]
+Astrocytes.markers <- Astrocytes.markers[order(Astrocytes.markers$avg_log2FC),][1:10,]
+OPCs.markers <- OPCs.markers[order(OPCs.markers$avg_log2FC),][1:10,]
+Microglia.markers <- Microglia.markers[order(Microglia.markers$avg_log2FC),][1:10,]
+
+
+ 
