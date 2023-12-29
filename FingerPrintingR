@@ -51,4 +51,4 @@ input_hyper = data.frame(gene_ids, is_candidate=1)
 #####################################################################################
 ## run enrichment analysis (n_randets=100 lowers compuation time
 ## compared to default 1000)
-res_hyper = go_enrich(input_hyper, n_randset=100, organismDb = 'Homo.sapiens')
+res_hyper = go_enrich(input_hyper, n_randset=100, organismDb = 'Mus.musculus')
