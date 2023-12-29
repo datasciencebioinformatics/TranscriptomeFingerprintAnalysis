@@ -35,6 +35,18 @@ load("./reference.RData")                                                #
 reference_join   <- JoinLayers(reference, assay = "RNA")
 all.markers <- FindAllMarkers(object = reference_join)
 #####################################################################################
+neurons.markers         <-all.markers[all.markers$cluster=="Neurons",]
+oligodendrocytes.markers<-all.markers[all.markers$cluster=="Oligodendrocytes",]
+astrocytes.markers      <-all.markers[all.markers$cluster=="Astrocytes",]
+oPCs.markers            <-all.markers[all.markers$cluster=="OPCs",]
+microglia.markers       <-all.markers[all.markers$cluster=="Microglia",]
+
+neurons.markers         <- neurons.markers[order(neurons.markers$avg_log2FC),][1:10,]
+oligodendrocytes.markers<- oligodendrocytes.markers[order(oligodendrocytes.markers$avg_log2FC),][1:10,]
+astrocytes.markers      <- astrocytes.markers[order(astrocytes.markers$avg_log2FC),][1:10,]
+oPCs.markers            <- oPCs.markers[order(oPCs.markers$avg_log2FC),][1:10,]
+microglia.markers       <- microglia.markers[order(microglia.markers$avg_log2FC),][1:10,]
+#####################################################################################
 # Here I will create the go terms for each cell type.
 # get the go terms - select a threshold (number of terms or pvalue)
 # also the genes associated to each term (by palue or expression pattern)
@@ -46,9 +58,9 @@ library(dplyr)
 ## load GOfuncR package
 library(GOfuncR)
 ## create input dataframe with candidate genes
-gene_ids = all.markers$gene
+gene_ids = neurons.markers$gene
 input_hyper = data.frame(gene_ids, is_candidate=1)
 #####################################################################################
 ## run enrichment analysis (n_randets=100 lowers compuation time
 ## compared to default 1000)
-res_hyper = go_enrich(input_hyper, n_randset=100, organismDb = 'Mus.musculus')
+res_hyper = go_enrich(input_hyper, n_randset=100, organismDb = 'Mus.musculus',test='wilcoxon')
