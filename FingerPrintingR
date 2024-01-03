@@ -80,7 +80,7 @@ GO_tbl <- getGO(organism = "Mus musculus",  genes    = "GUCA2A",  filters  = "hg
 # - take top genes from each celltype
 # - run get go
 # - take GO terms 
-genes <- genes$gene
+genes <- toupper(Neurons.markers$gene)
 getgo(genes,'mm10','ensGene')
 
 
@@ -97,12 +97,12 @@ goSlim(sample.ExpressionSet, slim, "MF", evidenceCode="TAS")
 #####################################################################################
 # For human it is working, now it is needed for mmusculus.
 library("biomaRt")
-mart = useMart(host="https://useast.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="mmusculus_gene_ensembl", verbose=F)
-mart = useMart( biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl", verbose=F)
-
-#Define Genes of Interest
-GOI <- c("TFEB", "RAC1", "TFE3", "RAB5A")
+mart = useMart(host="https://useast.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="mmusculus_gene_ensembl", verbose=F) #
 
 # get the mapping of GOI and ENSEMBL IDs and create a dictionary
-IDs <- getBM(attributes = c("ensembl_gene_id","hgnc_symbol"), filters = "hgnc_symbol", values = genes, mart = mart)
-IDs <- getBM(attributes = c("ensembl_gene_id","hgnc_symbol"), filters = "hgnc_symbol", values = GOI, mart = mart)
+ID_neurons <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Neurons.markers$gene), mart = mart)
+ID_oligodendrocytes <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Oligodendrocytes.markers$gene), mart = mart)
+ID_astrocytes <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Astrocytes.markers$gene), mart = mart)
+ID_oPCs <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(OPCs.markers$gene), mart = mart)
+ID_microglia <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Microglia.markers$gene), mart = mart)
+#####################################################################################
