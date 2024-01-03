@@ -19,12 +19,16 @@ library(ggplot2)
 library(loupeR)
 library(ggbeeswarm)
 library("topGO")
-library("GOfuncR")
 colour=c('Astrocytes' ='#fde725','OPCs' ='#5ec962','Microglia' ='#21918c','Neurons'='#3b528b','Oligodendrocytes'='#440154')
 #####################################################################################
 # First, create ATAC and RNA objects for all samples 
 # follow https://github.com/datasciencebioinformatics/preprocessing_scRNA_scATAC/blob/main/SeuratFullMultiomeObject
 # it will creante two main objects ATAC_objects_combined e RNA_objects_combined
+#####################################################################################
+# ATAC analysis add gene annotation information
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Mmusculus.v79)
+seqlevelsStyle(annotations) <- "UCSC"
+genome(annotations) <- "mm10"
 #####################################################################################
 output_dir="/home/felipe/results_seurat/"                                           #
 #output_dir="/home/singlecell/results_seurat/"                                      #
@@ -35,52 +39,70 @@ load("./reference.RData")                                                #
 reference_join   <- JoinLayers(reference, assay = "RNA")
 all.markers <- FindAllMarkers(object = reference_join)
 #####################################################################################
-neurons.markers         <-all.markers[all.markers$cluster=="Neurons",]
-oligodendrocytes.markers<-all.markers[all.markers$cluster=="Oligodendrocytes",]
-astrocytes.markers      <-all.markers[all.markers$cluster=="Astrocytes",]
-oPCs.markers            <-all.markers[all.markers$cluster=="OPCs",]
-microglia.markers       <-all.markers[all.markers$cluster=="Microglia",]
+# Select markers by cell types
+Neurons.markers          <- all.markers[all.markers$cluster=="Neurons",]
+Oligodendrocytes.markers <- all.markers[all.markers$cluster=="Oligodendrocytes",]
+Astrocytes.markers       <- all.markers[all.markers$cluster=="Oligodendrocytes",]
+OPCs.markers             <- all.markers[all.markers$cluster=="OPCs",]
+Microglia.markers        <- all.markers[all.markers$cluster=="Microglia",]
 
-neurons.markers         <- neurons.markers[order(neurons.markers$avg_log2FC),][1:10,]
-oligodendrocytes.markers<- oligodendrocytes.markers[order(oligodendrocytes.markers$avg_log2FC),][1:10,]
-astrocytes.markers      <- astrocytes.markers[order(astrocytes.markers$avg_log2FC),][1:10,]
-oPCs.markers            <- oPCs.markers[order(oPCs.markers$avg_log2FC),][1:10,]
-microglia.markers       <- microglia.markers[order(microglia.markers$avg_log2FC),][1:10,]
-#####################################################################################
-# Here I will create the go terms for each cell type.
-# get the go terms - select a threshold (number of terms or pvalue)
-# also the genes associated to each term (by palue or expression pattern)
+# Sort cell types
+Neurons.markers          <- Neurons.markers[order(Neurons.markers$avg_log2FC),][1:10,]                       # Call this module 1
+Oligodendrocytes.markers <- Oligodendrocytes.markers[order(Oligodendrocytes.markers$avg_log2FC),][1:10,]     # Call this module 2
+Astrocytes.markers       <- Astrocytes.markers[order(Astrocytes.markers$avg_log2FC),][1:10,]                 # Call this module 3
+OPCs.markers             <- OPCs.markers[order(OPCs.markers$avg_log2FC),][1:10,]                             # Call this module 4  
+Microglia.markers        <- Microglia.markers[order(Microglia.markers$avg_log2FC),][1:10,]                   # Call this module 5
 
-# I must select a threshold for the go terms and a 
-library(GOfuncR)
-library(dplyr)
+# To check :
+# - Application of sn-RNA differential expression among cluster and among celltypes
 
-## load GOfuncR package
-library(GOfuncR)
+# The genes will not be unique accross the cell types.   
+# For the neurons I will have 10 markers that are not necessary exclusive for neurons. Therefore it makes not sense to call these genes neuron markers if I want to compare them with the genes from other celltypes. However, it makes sense to use go terms.
+
 #####################################################################################
-## create input dataframe with candidate genes
-gene_ids = neurons.markers$gene
-input_hyper_neurons   = data.frame(neurons.markers$gene, is_candidate=1)
-input_hyper_oligodendrocytes = data.frame(oligodendrocytes.markers$gene, is_candidate=1)
-input_hyper_astrocytes= data.frame(astrocytes.markers$gene, is_candidate=1)
-input_hyper_microglia = data.frame(microglia.markers$gene, is_candidate=1)
-input_hyper_oPCs      = data.frame(oPCs.markers$gene, is_candidate=1)
+# I will use GO terms to analyse the gene epression. While many strategies can be designed to represent the expression of a group of genes,
+# I will pilot to simply average the expression of genes in.
+
+#to do :
+#- fingerptintint analysis test
+#	- package to assess GO terms on gene sets
+#	- package to create dotplots
+#
+# Go_Enrich_Out<- go_enrich(data.frame(gene=Neurons.markers$gene,hypergeometric=1),organismDb = 'Mus.musculus')
+ 
+ # show all elements of the data.frame
+library("biomaRt")
+# search for GO terms of an example Homo sapiens gene
+GO_tbl <- getGO(organism = "Mus musculus",  genes    = "GUCA2A",  filters  = "hgnc_symbol")
+
+
+# to do gene ontology :
+# - take top genes from each celltype
+# - run get go
+# - take GO terms 
+genes <- genes$gene
+getgo(genes,'mm10','ensGene')
+
+
+myIds <- c("GO:0016564", "GO:0003677", "GO:0004345", "GO:0008265",
+           "GO:0003841", "GO:0030151", "GO:0006355", "GO:0009664",
+           "GO:0006412", "GO:0015979", "GO:0006457", "GO:0005618",
+           "GO:0005622", "GO:0005840", "GO:0015935", "GO:0000311")
+myCollection <- GOCollection(myIds)
+fl <- system.file("extdata", "goslim_plant.obo", package="GSEABase")
+slim <- getOBOCollection(fl)
+goSlim(myCollection, slim, "MF")
+data(sample.ExpressionSet)
+goSlim(sample.ExpressionSet, slim, "MF", evidenceCode="TAS")
 #####################################################################################
-Results_neurons          = go_enrich(input_hyper_neurons, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_oligodendrocytes = go_enrich(input_hyper_oligodendrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_astrocytes       = go_enrich(input_hyper_astrocytes, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_microglia        = go_enrich(input_hyper_microglia, n_randset=1000, organismDb = 'Mus.musculus')$results
-Results_oPCs             = go_enrich(input_hyper_oPCs, n_randset=1000, organismDb = 'Mus.musculus')$results
-#####################################################################################
-## run enrichment analysis (n_randets=100 lowers compuation time
-## compared to default 1000)
-## Calculate over and under represented
-Over_Representation_neurons   <-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
-Over_Representation_microglia <-Results_neurons[Results_neurons$raw_p_overrep<=0.001,]
-Over_Representation_astrocytes<-Results_astrocytes[Results_astrocytes$raw_p_overrep<=0.001,]
-Over_Representation_neurons   <-Results_microglia[Results_microglia$raw_p_overrep<=0.001,]
-Over_Representation_oPCs      <-Results_oPCs[Results_oPCs$raw_p_overrep<=0.001,]
-#####################################################################################
-# Now I need to get all genes associated to a go term.
-gene.data <- getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
-                   filters = 'go_id', values = 'GO:0061061', mart = ensembl)
+# For human it is working, now it is needed for mmusculus.
+library("biomaRt")
+mart = useMart(host="https://useast.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="mmusculus_gene_ensembl", verbose=F)
+mart = useMart( biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl", verbose=F)
+
+#Define Genes of Interest
+GOI <- c("TFEB", "RAC1", "TFE3", "RAB5A")
+
+# get the mapping of GOI and ENSEMBL IDs and create a dictionary
+IDs <- getBM(attributes = c("ensembl_gene_id","hgnc_symbol"), filters = "hgnc_symbol", values = genes, mart = mart)
+IDs <- getBM(attributes = c("ensembl_gene_id","hgnc_symbol"), filters = "hgnc_symbol", values = GOI, mart = mart)
