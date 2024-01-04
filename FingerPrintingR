@@ -76,12 +76,6 @@ library("biomaRt")
 GO_tbl <- getGO(organism = "Mus musculus",  genes    = "GUCA2A",  filters  = "hgnc_symbol")
 
 
-# to do gene ontology :
-# - take top genes from each celltype
-# - run get go
-# - take GO terms 
-genes <- toupper(Neurons.markers$gene)
-getgo(genes,'mm10','ensGene')
 
 
 myIds <- c("GO:0016564", "GO:0003677", "GO:0004345", "GO:0008265",
@@ -106,3 +100,15 @@ ID_astrocytes <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), f
 ID_oPCs <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(OPCs.markers$gene), mart = mart)
 ID_microglia <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Microglia.markers$gene), mart = mart)
 #####################################################################################
+library("clusterProfiler")
+enrichGO(ID_neurons$ensembl_gene_id, OrgDb='Mus.musculus', keytype = "ENTREZID", ont = "MF", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe, qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = FALSE)
+
+# to do gene ontology :
+# - take top genes from each celltype
+# - run get go
+# - take GO terms
+# Fir 
+myCollection <- GOCollection(as.vector(getgo(ID_neurons$ensembl_gene_id,'mm10','ensGene')))
+fl <- system.file("extdata", "goslim_plant.obo", package="GSEABase")
+slim <- getOBOCollection(fl)
+goSlim(myCollection, slim, "BP")
