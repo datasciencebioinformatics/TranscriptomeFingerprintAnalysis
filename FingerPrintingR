@@ -24,12 +24,6 @@ colour=c('Astrocytes' ='#fde725','OPCs' ='#5ec962','Microglia' ='#21918c','Neuro
 # First, create ATAC and RNA objects for all samples 
 # follow https://github.com/datasciencebioinformatics/preprocessing_scRNA_scATAC/blob/main/SeuratFullMultiomeObject
 # it will creante two main objects ATAC_objects_combined e RNA_objects_combined
-#####################################################################################
-# ATAC analysis add gene annotation information
-annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Mmusculus.v79)
-seqlevelsStyle(annotations) <- "UCSC"
-genome(annotations) <- "mm10"
-#####################################################################################
 output_dir="/home/felipe/results_seurat/"                                           #
 #output_dir="/home/singlecell/results_seurat/"                                      #
 #####################################################################################
@@ -55,60 +49,7 @@ Microglia.markers        <- Microglia.markers[order(Microglia.markers$avg_log2FC
 
 # To check :
 # - Application of sn-RNA differential expression among cluster and among celltypes
-
-# The genes will not be unique accross the cell types.   
-# For the neurons I will have 10 markers that are not necessary exclusive for neurons. Therefore it makes not sense to call these genes neuron markers if I want to compare them with the genes from other celltypes. However, it makes sense to use go terms.
-
 #####################################################################################
-# I will use GO terms to analyse the gene epression. While many strategies can be designed to represent the expression of a group of genes,
-# I will pilot to simply average the expression of genes in.
-
-#to do :
-#- fingerptintint analysis test
-#	- package to assess GO terms on gene sets
-#	- package to create dotplots
-#
-# Go_Enrich_Out<- go_enrich(data.frame(gene=Neurons.markers$gene,hypergeometric=1),organismDb = 'Mus.musculus')
- 
- # show all elements of the data.frame
-library("biomaRt")
-# search for GO terms of an example Homo sapiens gene
-GO_tbl <- getGO(organism = "Mus musculus",  genes    = "GUCA2A",  filters  = "hgnc_symbol")
+# I will take the gene expression of each group.
 
 
-
-
-myIds <- c("GO:0016564", "GO:0003677", "GO:0004345", "GO:0008265",
-           "GO:0003841", "GO:0030151", "GO:0006355", "GO:0009664",
-           "GO:0006412", "GO:0015979", "GO:0006457", "GO:0005618",
-           "GO:0005622", "GO:0005840", "GO:0015935", "GO:0000311")
-myCollection <- GOCollection(myIds)
-fl <- system.file("extdata", "goslim_plant.obo", package="GSEABase")
-slim <- getOBOCollection(fl)
-goSlim(myCollection, slim, "MF")
-data(sample.ExpressionSet)
-goSlim(sample.ExpressionSet, slim, "MF", evidenceCode="TAS")
-#####################################################################################
-# For human it is working, now it is needed for mmusculus.
-library("biomaRt")
-mart = useMart(host="https://useast.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="mmusculus_gene_ensembl", verbose=F) #
-
-# get the mapping of GOI and ENSEMBL IDs and create a dictionary
-ID_neurons <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Neurons.markers$gene), mart = mart)
-ID_oligodendrocytes <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Oligodendrocytes.markers$gene), mart = mart)
-ID_astrocytes <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Astrocytes.markers$gene), mart = mart)
-ID_oPCs <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(OPCs.markers$gene), mart = mart)
-ID_microglia <- getBM(attributes = c("ensembl_gene_id","external_gene_name"), filters = "external_gene_name", values = toupper(Microglia.markers$gene), mart = mart)
-#####################################################################################
-library("clusterProfiler")
-enrichGO(ID_neurons$ensembl_gene_id, OrgDb='Mus.musculus', keytype = "ENTREZID", ont = "MF", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe, qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = FALSE)
-
-# to do gene ontology :
-# - take top genes from each celltype
-# - run get go
-# - take GO terms
-# Fir 
-myCollection <- GOCollection(as.vector(getgo(ID_neurons$ensembl_gene_id,'mm10','ensGene')))
-fl <- system.file("extdata", "goslim_plant.obo", package="GSEABase")
-slim <- getOBOCollection(fl)
-goSlim(myCollection, slim, "BP")
