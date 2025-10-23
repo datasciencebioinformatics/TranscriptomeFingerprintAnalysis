@@ -1,3 +1,13 @@
+#### 1) Set the project folder either on Linux or in Window
+##### a) If in Linux
+project_folder="/home/felipe/Documents/TranscriptomeFingerprintAnalysis/"
+
+#### b) Or in Windows
+project_folder="C:/Users/User/Documents/GitHub/TranscriptomeFingerprintAnalysis/"
+
+##### c) set outputfolder
+output_dir=project_folder
+
 <!-- GETTING STARTED -->
 A transcriptome fingerprint analysis.
 
