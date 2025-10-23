@@ -71,19 +71,43 @@ dataInfo<-data.frame(read.table(file_dataInfo,header = FALSE))
 # Set colnames
 colnames(dataInfo)<-c("sequence_file","diagnosis","id")
 
+# Set colnames
+rownames(dataInfo)<-dataInfo$id
+
+# Set the order
+dataInfo<-dataInfo[colnames(tableReadsCount),]
 
 # Create DESeq object from data, grouped by Sample_Group
-DESeqData_group_phenotype <- DESeqDataSetFromMatrix(countData = tableReadsCount,colData = dataInfo,design = as.formula(paste("+",diagnosis)))
-
+DESeqData_group_phenotype <- DESeqDataSetFromMatrix(countData = tableReadsCount,colData = dataInfo,design = as.formula(paste("~ diagnosis")))
 ############################################################################################################################################
-# Pre-filtering - removing rows in which there are no reads or nearly no reads
-# Filter DESeq object grouped by Sample_Group
-DESeqData_group_phenotype <- DESeqData_group_phenotype[ rowSums(counts(DESeqData_group_phenotype)) > 1, ]
-
-############################################################################################################################################
-
 # Differential expression analysis
 # Comparison will be the last level of this variable over the first level - Sample_Group
 DESeqData_group_phenotype <- DESeq(DESeqData_group_phenotype)
 ############################################################################################################################################
-# Get TPM count
+# Extract results for the default comparison
+res <- results(DESeqData_group_phenotype,contrast=c("diagnosis","healthy", "T1D"))
+
+# Print a summary of the results
+summary(res)
+
+# Get significant genes (e.g., with padj < 0.05)
+significant_genes <- subset(res, padj < 0.05)
+
+significant_genes$log2FoldChange
+############################################################################################################################################
+# Take the average expression in healthy +- sd, average expression in patients +- sd, number of interactions,
+significant_genes<-significant_genes[which(significant_genes$log2FoldChange>1.5),]
+
+# Add collumns for mean expression
+significant_genes<-cbind(significant_genes,mean_healthy=0,sd_healthy=0,mean_T1D=0,sd_T1D=0)
+
+# for each genes, calculate the averages
+for (genes in rownames(significant_genes))
+{
+	#  Take the mean of the healthy samples
+	significant_genes[genes,"mean_healthy"]<-mean(counts(DESeqData_group_phenotype,norm=TRUE)[genes,dataInfo[which(dataInfo$diagnosis == "healthy"),"id"]])
+	significant_genes[genes,"sd_healthy"]<-sd(counts(DESeqData_group_phenotype,norm=TRUE)[genes,dataInfo[which(dataInfo$diagnosis == "healthy"),"id"]])
+	significant_genes[genes,"mean_T1D"]<-mean(counts(DESeqData_group_phenotype,norm=TRUE)[genes,dataInfo[which(dataInfo$diagnosis == "T1D"),"id"]])
+	significant_genes[genes,"sd_T1D"]<-sd(counts(DESeqData_group_phenotype,norm=TRUE)[genes,dataInfo[which(dataInfo$diagnosis == "T1D"),"id"]])	
+}
+############################################################################################################################################
