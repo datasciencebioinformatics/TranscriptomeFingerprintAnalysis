@@ -1,4 +1,13 @@
 #!/usr/bin/env Rscript
+## 1) Set the project folder either on Linux or in Window
+### a) If in Linux
+##### project_folder="/home/felipe/Documents/TranscriptomeFingerprintAnalysis/"
+
+### b) Or in Windows
+project_folder="C:/Users/User/Documents/GitHub/TranscriptomeFingerprintAnalysis/"
+
+### c) set outputfolder
+output_dir=project_folder
 ############################################################################################################################################
 # Load library 
 options(java.parameters = "-Xmx16000m")
@@ -57,16 +66,14 @@ tableReadsCount<-read.table(file_tableReadsCount,header = TRUE,row.names=1, chec
 tableReadsCount<-tableReadsCount[ , order(names(tableReadsCount))]
 
 # Load maxtrix as table
-dataInfo<-data.frame(read.table(file_dataInfo,header = TRUE,row.names=4))
+dataInfo<-data.frame(read.table(file_dataInfo,header = FALSE))
 
-# Sort the rows of the table
-dataInfo<-dataInfo[ order(row.names(dataInfo)), ]
+# Set colnames
+colnames(dataInfo)<-c("sequence_file","diagnosis","id")
 
-# Transform Run coluln into factor
-dataInfo[,batch_run]<-as.factor(dataInfo[,batch_run])
 
 # Create DESeq object from data, grouped by Sample_Group
-DESeqData_group_phenotype <- DESeqDataSetFromMatrix(countData = tableReadsCount,colData = dataInfo,design = as.formula(paste("+",group_phenotype)))
+DESeqData_group_phenotype <- DESeqDataSetFromMatrix(countData = tableReadsCount,colData = dataInfo,design = as.formula(paste("+",diagnosis)))
 
 ############################################################################################################################################
 # Pre-filtering - removing rows in which there are no reads or nearly no reads
